@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>文本文档</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="./js/axios.min.js"></script>
+    <script src="./js/pako.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -75,7 +77,7 @@
 			return;
 		}
 
-		const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+		const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
 		const url = URL.createObjectURL(blob);
 
 		const a = document.createElement("a");
@@ -88,7 +90,56 @@
 		URL.revokeObjectURL(url); // 释放资源
 	});
 
+	class Message {
+		constructor(uuid, name, messageObj) {
+			this.uuid = uuid
+			this.name = name
+			this.message = JSON.stringify(messageObj)
+		}
+	}
+
+	class Status {
+		constructor(code) {
+			this.code = code;
+		}
+
+		setData() {
+			this.data = "*-/@!$$@@#ax231clear@!23a1s31dd@!#";
+			return this;
+		}
+	}
+
+	const CLEAR_TABLE = new Status(9);
+
+	let uuid
+	let socket
+	axios.get("https://sheet.yfose.cn:8080/channel/get?name=text-page").then(res => {
+	// axios.get("http://127.0.0.1:8080/channel/get?name=text-page").then(res => {
+		uuid = res.data
+		socket = new WebSocket("wss://sheet.yfose.cn:8080");
+		// socket = new WebSocket("ws://127.0.0.1:8080");
+		socket.binaryType = "arraybuffer"
+		socket.onopen = () => {
+			sendBinaryMessage("/init")
+		}
+		socket.onmessage = (event) => {
+			const messageObj = JSON.parse(event.data);
+			if (messageObj === "/init") {
+				console.log("/init")
+			} else {
+				document.getElementById("textArea").value = messageObj
+			}
+		}
+	})
+
+	function sendBinaryMessage(obj) {
+		let message = pako.gzip(JSON.stringify(new Message(uuid, "text-page", obj)))
+		socket.send(message)
+	}
+
 	window.addEventListener("beforeunload", function (event) {
+		sendBinaryMessage(CLEAR_TABLE.setData())
+		sendBinaryMessage(document.getElementById("textArea").value)
 		event.preventDefault();
 	});
 </script>
