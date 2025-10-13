@@ -76,6 +76,7 @@ export default {
 };
 
 export {
+	$languages,
 	locale,
 	t,
 	tf,

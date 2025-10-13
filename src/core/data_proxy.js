@@ -13,6 +13,18 @@ import {Validations} from './validation';
 import {CellRange} from './cell_range';
 import {expr2xy, xy2expr} from './alphabet';
 import {t} from '../locale/locale';
+import getOrCreateSocket from "../forward/socket.js";
+import {
+	AUTO_FILL,
+	COPY,
+	CUT,
+	DELETE,
+	FORMULA,
+	MERGE,
+	PASTE_FROM_CLIPBOARD,
+	STYLE_BORD,
+	STYLES
+} from "../forward/status_enum.js";
 
 // private methods
 /*
@@ -170,6 +182,7 @@ function setStyleBorder(ri, ci, bss) {
 
 function setStyleBorders({mode, style, color}) {
 	const {styles, selector, rows} = this;
+	getOrCreateSocket().sendMessage(STYLE_BORD.setData({mode, style, color, range: selector.range, styles}));
 	const {
 		sri, sci, eri, eci,
 	} = selector.range;
@@ -352,6 +365,19 @@ export default class DataProxy {
 		this.unsortedRowMap = new Map();
 	}
 
+	each(cb, range, rowFilter = () => true) {
+		const {
+			sri, sci, eri, eci,
+		} = range;
+		for (let i = sri; i <= eri; i += 1) {
+			if (rowFilter(i)) {
+				for (let j = sci; j <= eci; j += 1) {
+					cb(i, j);
+				}
+			}
+		}
+	}
+
 	addValidation(mode, ref, validator) {
 		// console.log('mode:', mode, ', ref:', ref, ', validator:', validator);
 		this.changeData(() => {
@@ -457,8 +483,14 @@ export default class DataProxy {
 
 		this.changeData(() => {
 			if (clipboard.isCopy()) {
+				getOrCreateSocket().sendMessage(COPY.setData({
+					srcRange: clipboard.range,
+					dstRange: selector.range,
+					what
+				}))
 				copyPaste.call(this, clipboard.range, selector.range, what);
 			} else if (clipboard.isCut()) {
+				getOrCreateSocket().sendMessage(CUT.setData({srcRange: clipboard.range, dstRange: selector.range}))
 				cutPaste.call(this, clipboard.range, selector.range);
 			}
 		});
@@ -469,6 +501,11 @@ export default class DataProxy {
 		const {selector} = this;
 		navigator.clipboard.readText().then((content) => {
 			const contentToPaste = this.parseClipboardContent(content);
+			getOrCreateSocket().sendMessage(PASTE_FROM_CLIPBOARD.setData({
+				ri: selector.ri,
+				ci: selector.ci,
+				contentToPaste
+			}))
 			let startRow = selector.ri;
 			contentToPaste.forEach((row) => {
 				let startColumn = selector.ci;
@@ -516,6 +553,7 @@ export default class DataProxy {
 	autofill(cellRange, what, error = () => {
 	}) {
 		const srcRange = this.selector.range;
+		getOrCreateSocket().sendMessage(AUTO_FILL.setData({srcRange, dstRange: cellRange, what}))
 		if (!canPaste.call(this, srcRange, cellRange, error)) return false;
 		this.changeData(() => {
 			copyPaste.call(this, srcRange, cellRange, what, true);
@@ -572,10 +610,12 @@ export default class DataProxy {
 		return cellRange;
 	}
 
+	//added code
 	setSelectedCellAttr(property, value) {
 		this.changeData(() => {
 			const {selector, styles, rows} = this;
 			if (property === 'merge') {
+				getOrCreateSocket().sendMessage(MERGE.setData({bool: value, range: selector.range}))
 				if (value) this.merge();
 				else this.unmerge();
 			} else if (property === 'border') {
@@ -583,8 +623,17 @@ export default class DataProxy {
 			} else if (property === 'formula') {
 				// console.log('>>>', selector.multiple());
 				const {ri, ci, range} = selector;
+				const [rn, cn] = selector.size();
+				getOrCreateSocket().sendMessage(FORMULA.setData({
+					range,
+					value,
+					ri,
+					ci,
+					rn,
+					cn,
+					multiple: selector.multiple()
+				}))
 				if (selector.multiple()) {
-					const [rn, cn] = selector.size();
 					const {
 						sri, sci, eri, eci,
 					} = range;
@@ -602,6 +651,7 @@ export default class DataProxy {
 					cell.text = `=${value}()`;
 				}
 			} else {
+				getOrCreateSocket().sendMessage(STYLES.setData({property, value, range: selector.range, styles}))
 				selector.range.each((ri, ci) => {
 					const cell = rows.getCellOrNew(ri, ci);
 					let cstyle = {};
@@ -856,12 +906,14 @@ export default class DataProxy {
 		});
 	}
 
-	deleteCell(what = 'all') {
-		const {selector} = this;
+	//added code
+	deleteCell(what = 'all', range = this.selector.range) {
+		getOrCreateSocket().sendMessage(DELETE.setData({what, range}))
+
 		this.changeData(() => {
-			this.rows.deleteCells(selector.range, what);
+			this.rows.deleteCells(range, what);
 			if (what === 'all' || what === 'format') {
-				this.merges.deleteWithin(selector.range);
+				this.merges.deleteWithin(range);
 			}
 		});
 	}
@@ -1260,4 +1312,28 @@ export default class DataProxy {
 			autofilter: autoFilter.getData(),
 		};
 	}
+
+	// 在 DataProxy 类中添加
+	clearAllData() {
+		this.changeData(() => {
+			// 清空所有行数据
+			this.rows = new Rows(this.settings.row);
+			this.cols = new Cols(this.settings.col);
+			this.merges = new Merges();
+			this.validations = new Validations();
+			this.hyperlinks = {};
+			this.comments = {};
+			this.autoFilter.clear();
+			this.freeze = [0, 0];
+
+			// 重置相关状态
+			this.exceptRowSet = new Set();
+			this.sortedRowMap = new Map();
+			this.unsortedRowMap = new Map();
+			this.selector = new Selector();
+			this.clipboard.clear();
+		});
+	}
 }
+
+export {setStyleBorder, copyPaste, cutPaste, canPaste}

@@ -1,34 +1,519 @@
 <!DOCTYPE html>
-<html lang="zh-cn">
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <title>共享电子表格系统</title>
     <meta name="viewport" content="width=device-width">
-    <title>运行测试</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background-color: #f9fafb;
+        }
+
+        /* 页面隐藏通用 */
+        .hidden {
+            display: none !important;
+        }
+
+        .sheet-user {
+            position: absolute;
+        }
+
+        /* 登录卡片样式 */
+        .login-card {
+            width: 300px;
+            background: #ffffff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            padding: 24px;
+            text-align: center;
+            margin: 120px auto;
+        }
+
+        .login-card h2 {
+            margin-bottom: 20px;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .login-card input {
+            width: 90%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .login-card button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .login-card button:hover {
+            background-color: #0056b3;
+        }
+
+        .login-card .toggle {
+            margin-top: 12px;
+            color: #007bff;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* 管理员页面样式 */
+        .top-bar {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .top-bar .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            outline: none;
+            background-color: #fff;
+            color: #333;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #fff;
+            color: #007bff;
+            border: 1px solid #007bff;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .user-list {
+            padding: 30px;
+            max-width: 800px;
+            margin: 40px auto;
+            background-color: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        /* 表格样式 */
+        #userTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #userTable th, #userTable td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #userTable th {
+            text-align: left;
+            color: #333;
+        }
+
+        #userTable td:last-child {
+            text-align: right;
+        }
+
+        #userTable button {
+            margin-left: 6px;
+        }
+
+        /* 电子表格 */
+        #sheet {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #exitViewBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #ff4d4f;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 9999;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        #exitViewBtn:hover {
+            background-color: #d9363e;
+        }
+
+    </style>
 </head>
 <body>
-<div id="x-spreadsheet-demo"></div>
+
+<!-- 登录界面 -->
+<div id="loginPage">
+    <!-- 用户登录 -->
+    <div class="login-card" id="userCard">
+        <h2>用户登录</h2>
+        <input type="text" id="userName" placeholder="用户名">
+        <input type="password" id="userPassword" placeholder="密码">
+        <div class="error-message" id="userError"></div>
+        <button id="userLoginBtn">登录</button>
+        <div class="toggle" id="toAdminBtn">管理员登录</div>
+    </div>
+
+    <!-- 管理员登录 -->
+    <div class="login-card hidden" id="adminCard">
+        <h2>管理员登录</h2>
+        <input type="text" id="adminName" placeholder="管理员用户名">
+        <input type="password" id="adminPassword" placeholder="管理员密码">
+        <div class="error-message" id="adminError"></div>
+        <button id="adminLoginBtn">登录</button>
+        <div class="toggle" id="toUserBtn">返回用户登录</div>
+    </div>
+</div>
+
+<!-- 管理员界面 -->
+<div id="adminPage" class="hidden">
+    <div class="top-bar">
+        <div class="input-group">
+            <input type="text" id="username" placeholder="用户名">
+            <input type="password" id="password" placeholder="密码">
+            <button id="createUserBtn">创建用户</button>
+        </div>
+        <div>
+            <button id="textPage">文本文档</button>
+            <button id="goBackBtn">退出</button>
+        </div>
+    </div>
+    <div id="message" class="message"></div>
+
+    <!-- ✅ 用户列表表格 -->
+    <div class="user-list">
+        <h3>用户列表</h3>
+        <table id="userTable">
+            <thead>
+            <tr>
+                <th>用户名</th>
+                <th>备注</th>
+                <th style="text-align: right;">操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 用户表格界面 -->
+<div id="sheetPage" class="hidden">
+    <div id="sheet"></div>
+</div>
+
 <script type="module">
+	import axios from "axios";
 	import Spreadsheet from "/src/index.js";
+	import {CLEAR_TABLE, DELETE_USER} from "./src/forward/status_enum.js";
+	import Message from "./src/forward/message.js";
+	import {ip} from "./src/forward/socket.js";
 
-	const sheet = new Spreadsheet("#x-spreadsheet-demo", {
+	window.spreadsheet = Spreadsheet;
 
-    });
-	const allEvents = [
-		'cell-selected',
-		'cells-selected',
-		'cell-edited',
-		'change',
-		'undo',
-		'redo',
-		'print',
-		'error'
-	];
+	class Account {
+		constructor(name, password) {
+			this.name = name;
+			this.password = password;
+		}
 
-	allEvents.forEach(ev => {
-		sheet.on(ev, (...args) => console.log(ev, ...args));
-	});
+		toObj() {
+			return {name: this.name, password: this.password};
+		}
+	}
 
+	function showPage(pageId) {
+		document.querySelectorAll('body > div').forEach(d => d.classList.add('hidden'));
+		document.getElementById(pageId).classList.remove('hidden');
+	}
 
+	const userLoginBtn = document.getElementById('userLoginBtn');
+	const adminLoginBtn = document.getElementById('adminLoginBtn');
+	const toAdminBtn = document.getElementById('toAdminBtn');
+	const toUserBtn = document.getElementById('toUserBtn');
+	const userCard = document.getElementById('userCard');
+	const adminCard = document.getElementById('adminCard');
+	const userError = document.getElementById('userError');
+	const adminError = document.getElementById('adminError');
+	const textPage = document.getElementById('textPage');
+
+	textPage.addEventListener('click', (e) => {
+		window.open("text_page.html")
+	})
+
+	function toggleLogin(target) {
+		if (target === 'admin') {
+			userCard.classList.add('hidden');
+			adminCard.classList.remove('hidden');
+		} else {
+			adminCard.classList.add('hidden');
+			userCard.classList.remove('hidden');
+		}
+		userError.style.display = 'none';
+		adminError.style.display = 'none';
+	}
+
+	function showError(element, message) {
+		element.textContent = message;
+		element.style.display = 'block';
+	}
+
+	async function userLogin() {
+		const name = document.getElementById('userName').value.trim();
+		const pwd = document.getElementById('userPassword').value.trim();
+		if (!name || !pwd) return showError(userError, '请输入用户名和密码');
+
+		try {
+			const s = new Account(name, pwd);
+			const res = await axios.post(`https://${ip}/account/login/user`, s);
+			const data = res.data;
+			if (data === "账户不存在" || data === "密码不正确") return showError(userError, data);
+
+			localStorage.setItem("account", JSON.stringify(data));
+			showPage("sheetPage");
+			window.spreadsheet = new Spreadsheet("#sheet", data.name);
+		} catch {
+			showError(userError, '登录失败');
+		}
+	}
+
+	async function adminLogin() {
+		const name = document.getElementById('adminName').value.trim();
+		const pwd = document.getElementById('adminPassword').value.trim();
+		if (!name || !pwd) return showError(adminError, '请输入管理员账号和密码');
+
+		try {
+			const s = new Account(name, pwd).toObj();
+			const res = await axios.post(`https://${ip}/account/login/admin`, s);
+			const data = res.data;
+			if (data === "管理员不存在" || data === "密码不正确") return showError(adminError, data);
+
+			localStorage.setItem("account", JSON.stringify(data));
+			showPage("adminPage");
+			loadUsers();
+		} catch {
+			showError(adminError, '登录失败');
+		}
+	}
+
+	userLoginBtn.addEventListener('click', userLogin);
+	adminLoginBtn.addEventListener('click', adminLogin);
+	toAdminBtn.addEventListener('click', () => toggleLogin('admin'));
+	toUserBtn.addEventListener('click', () => toggleLogin('user'));
+
+	const users = [];
+	const messageEl = document.getElementById('message');
+
+	function showMessage(message, type = 'error') {
+		messageEl.textContent = message;
+		messageEl.className = `message ${type}`;
+		messageEl.style.display = 'block';
+		setTimeout(() => messageEl.style.display = 'none', 3000);
+	}
+
+	async function createUser() {
+		const username = document.getElementById("username").value.trim();
+		const password = document.getElementById("password").value.trim();
+		if (!username || !password) return showMessage("请输入用户名和密码");
+
+		try {
+			const s = new Account(username, password);
+			const response = await axios.post(`https://${ip}/account/create/user`, s);
+			const data = response.data;
+			if (data === "账户已存在") return showMessage(data);
+
+			users.push({username, password});
+			renderTable();
+			showMessage("用户创建成功", "success");
+		} catch {
+			showMessage("创建用户失败");
+		}
+	}
+
+	/** ✅ 从 localStorage 获取备注 */
+	function getUserNotes() {
+		return JSON.parse(localStorage.getItem("userNotes") || "{}");
+	}
+
+	/** ✅ 保存备注到 localStorage */
+	function saveUserNotes(notes) {
+		localStorage.setItem("userNotes", JSON.stringify(notes));
+	}
+
+	function renderTable() {
+		const tbody = document.querySelector("#userTable tbody");
+		tbody.innerHTML = "";
+
+		const notes = getUserNotes();
+
+		users.forEach(u => {
+			const row = document.createElement("tr");
+
+			// ✅ 备注列
+			const noteText = notes[u.username] || "";
+			row.innerHTML = `
+				<td>${u.username}</td>
+				<td class="note-cell" contenteditable="true" style="color:#555;">${noteText}</td>
+				<td style="text-align:right;">
+					<button class="view-btn">查看</button>
+					<button class="delete-btn">删除</button>
+				</td>
+			`;
+
+			/** ✅ 编辑备注逻辑 */
+			const noteCell = row.querySelector(".note-cell");
+			noteCell.addEventListener("blur", () => {
+				const newNote = noteCell.textContent.trim();
+				const currentNotes = getUserNotes();
+				currentNotes[u.username] = newNote;
+				saveUserNotes(currentNotes);
+			});
+			noteCell.addEventListener("keydown", e => {
+				if (e.key === "Enter") {
+					e.preventDefault();
+					noteCell.blur();
+				}
+			});
+
+			row.querySelector(".view-btn").addEventListener("click", async () => {
+				localStorage.setItem("auto-account", JSON.stringify({
+					name: u.username,
+					password: u.password,
+					token: u.token
+				}));
+				window.open("index.html");
+			});
+
+			row.querySelector(".delete-btn").addEventListener("click", async () => {
+				if (!confirm(`确定要删除用户 ${u.username} 吗？`)) return;
+				try {
+					const admin = JSON.parse(localStorage.getItem("account"));
+					const account = new Account(u.username, "");
+					const res = await axios.post(`https://${ip}/account/delete/user`, account);
+					const channelName = "spreadsheet-" + u.username;
+					const uuidData = await axios.get(`https://${ip}/channel/get?name=` + channelName);
+
+					const socket = new WebSocket(`wss://${ip}/`);
+					socket.onopen = function () {
+						socket.send(JSON.stringify(new Message(uuidData.data, channelName, DELETE_USER)));
+						socket.send(JSON.stringify(new Message(uuidData.data, channelName, CLEAR_TABLE.setData("*-/@!$$@@#ax231clear@!23a1s31dd@!#"))));
+					};
+
+					const data = res.data;
+					if (data === "删除成功") {
+						const index = users.findIndex(item => item.username === u.username);
+						if (index > -1) users.splice(index, 1);
+
+						// ✅ 同时删除备注
+						const currentNotes = getUserNotes();
+						delete currentNotes[u.username];
+						saveUserNotes(currentNotes);
+
+						renderTable();
+						showMessage("删除成功", "success");
+					} else {
+						showMessage(data || "删除失败");
+					}
+				} catch (e) {
+					showMessage("删除请求失败：" + e);
+				}
+			});
+
+			tbody.appendChild(row);
+		});
+	}
+
+	async function loadUsers() {
+		try {
+			const s = JSON.parse(localStorage.getItem("account"));
+			const res = await axios.post(`https://${ip}/account/get/user/all`, {
+				name: s.name, token: s.token
+			});
+			const data = res.data;
+			users.length = 0;
+			data.forEach(item => users.push({username: item.name, token: item.token}));
+			renderTable();
+		} catch {
+			showMessage("加载用户失败");
+		}
+	}
+
+	document.getElementById('createUserBtn').addEventListener('click', createUser);
+	document.getElementById('goBackBtn').addEventListener('click', () => showPage("loginPage"));
+
+	const item = localStorage.getItem("auto-account");
+	if (item != null) {
+		const account = JSON.parse(item);
+
+		if (!account.token) {
+			axios.post(`https://${ip}/account/login/user`, account).then(res => {
+				if (res.data !== "账户不存在" && res.data !== "密码不正确") {
+					showPage("sheetPage");
+					window.spreadsheet = new Spreadsheet("#sheet", account.name);
+				}
+			})
+		} else {
+			axios.post(`https://${ip}/account/login/user/auto`, account).then((res) => {
+				showPage("sheetPage");
+				window.spreadsheet = new Spreadsheet("#sheet", account.name);
+			})
+		}
+		localStorage.removeItem("auto-account");
+	}
 </script>
 </body>
 </html>

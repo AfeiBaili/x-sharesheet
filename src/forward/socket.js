@@ -1,10 +1,10 @@
 import axios from "axios";
 import Message from "./message.js";
 
-const name = "spreadsheet";
 
-const url = `http://127.0.0.1:8080/channel/get?name=${name}`
-const webSocketUrl = "ws://127.0.0.1:8080/";
+const ip = "sheet.yfose.cn:8080"
+// const ip = "127.0.0.1:8080"
+
 let socket = null;
 let initMessage = null;
 
@@ -12,14 +12,30 @@ let initMessage = null;
  *
  * @returns {Socket} socket实现
  */
-export default function getOrCreateSocket() {
-	if (socket == null) socket = new Socket();
+export default function getOrCreateSocket(name) {
+	if (socket == null) socket = new Socket(name);
 	return socket;
 }
 
+function setSocket(name) {
+	if (socket == null) socket = new Socket(name);
+	if (socket.socket !== undefined) socket.socket.close()
+
+	socket = new Socket(name);
+	return socket;
+}
+
+export {setSocket, ip}
+
+let networkEl = null
+
 class Socket {
-	constructor() {
+	constructor(username) {
+		const name = `spreadsheet-${username}`;
+		const url = `https://${ip}/channel/get?name=${name}`
+		const webSocketUrl = `wss://${ip}/`;
 		const self = this
+
 		axios.get(url).then(function (response) {
 			self.uuid = response.data
 			self.name = name
@@ -32,13 +48,21 @@ class Socket {
 		})
 	}
 
+	setNetworkEl(network) {
+		networkEl = network;
+	}
+
 	addOnMessage(fun) {
 		messageSet.add(fun)
 	}
 
 	sendMessage(obj) {
 		const message = new Message(this.uuid, this.name, obj);
-		this.socket.socket.send(JSON.stringify(message));
+		try {
+			this.socket.socket.send(JSON.stringify(message));
+		} catch (e) {
+			console.log(e)
+		}
 	}
 }
 
@@ -49,6 +73,9 @@ class WebSocketImpl {
 	constructor(url) {
 		const socket = new WebSocket(url);
 		socket.onopen = () => {
+			const networkDiv = networkEl.el.el.lastElementChild.lastElementChild;
+			networkDiv.classList.remove("network-error");
+			networkDiv.classList.add("network-connect");
 			this.socket.send(JSON.stringify(initMessage))
 		}
 		socket.onmessage = this.message
@@ -58,13 +85,24 @@ class WebSocketImpl {
 	}
 
 	message(event) {
-		messageSet.forEach(it => it.call(this, event.data))
+		const messageObj = JSON.parse(event.data);
+		if (messageObj === "/init") {
+			console.log("/init")
+			return
+		}
+		messageSet.forEach(it => it.call(this, messageObj))
 	}
 
 	close(event) {
+		const networkDiv = networkEl.el.el.lastElementChild.lastElementChild;
+		networkDiv.classList.remove("network-connect");
+		networkDiv.classList.add("network-error");
 	}
 
 	error(error) {
+		const networkDiv = networkEl.el.el.lastElementChild.lastElementChild;
+		networkDiv.classList.remove("network-connect");
+		networkDiv.classList.add("network-error");
 		console.error("连接ws服务器错误：" + error);
 	}
 }

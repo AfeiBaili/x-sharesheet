@@ -9,7 +9,6 @@ import Strike from './strike';
 import Underline from './underline';
 import Border from './border';
 import Clearformat from './clearformat';
-import Paintformat from './paintformat';
 import TextColor from './text_color';
 import FillColor from './fill_color';
 import FontSize from './font_size';
@@ -18,9 +17,6 @@ import Format from './format';
 import Formula from './formula';
 import Freeze from './freeze';
 import Merge from './merge';
-import Redo from './redo';
-import Undo from './undo';
-import Textwrap from './textwrap';
 import More from './more';
 import Item from './item';
 
@@ -32,6 +28,9 @@ import {tf} from "../../locale/locale.js";
 import Spreadsheet from "../../index.js";
 import en from "../../locale/en.js";
 import zhCn from "../../locale/zh-cn.js";
+import Network from "./network.js";
+import Export from "./export.js";
+import ClearTable from "./clear_table.js";
 
 function buildDivider() {
 	return h('div', `${cssPrefix}-toolbar-divider`);
@@ -108,7 +107,7 @@ function genBtn(it) {
 }
 
 export default class Toolbar {
-	constructor(data, widthFn, isHide = false) {
+	constructor(data, sheet, widthFn, isHide = false) {
 		this.data = data;
 		this.change = () => {
 		};
@@ -117,14 +116,13 @@ export default class Toolbar {
 		const style = data.defaultStyle();
 		this.items = [
 			[
-				this.undoEl = new Undo(),
-				this.redoEl = new Redo(),
+				// this.undoEl = new Undo(),
+				// this.redoEl = new Redo(),
 				//禁用打印机
 				// new Print(),
-				this.paintformatEl = new Paintformat(),
-				this.clearformatEl = new Clearformat(),
+				// this.paintformatEl = new Paintformat(),
 			],
-			buildDivider(),
+			// buildDivider(),
 			[
 				this.formatEl = new Format(),
 			],
@@ -140,6 +138,7 @@ export default class Toolbar {
 				this.underlineEl = new Underline(),
 				this.strikeEl = new Strike(),
 				this.textColorEl = new TextColor(style.color),
+				this.clearformatEl = new Clearformat(),
 			],
 			buildDivider(),
 			[
@@ -151,15 +150,21 @@ export default class Toolbar {
 			[
 				this.alignEl = new Align(style.align),
 				this.valignEl = new Valign(style.valign),
-				this.textwrapEl = new Textwrap(),
+				// this.textwrapEl = new Textwrap(),
 			],
 			buildDivider(),
 			[
 				this.freezeEl = new Freeze(),
 				this.autofilterEl = new Autofilter(),
 				this.formulaEl = new Formula(),
-				this.translationEl = new Translation()
 			],
+			buildDivider(),
+			[
+				this.translationEl = new Translation(),
+				this.exportEl = new Export(sheet),
+				this.networkEl = new Network(),
+				this.clearTable = new ClearTable(sheet),
+			]
 		];
 
 		const {extendToolbar = {}} = data.settings;
@@ -226,7 +231,7 @@ export default class Toolbar {
 	}
 
 	paintformatActive() {
-		return this.paintformatEl.active();
+		// return this.paintformatEl.active();
 	}
 
 	paintformatToggle() {
@@ -247,8 +252,8 @@ export default class Toolbar {
 		const {data} = this;
 		const style = data.getSelectedCellStyle();
 		// console.log('canUndo:', data.canUndo());
-		this.undoEl.setState(!data.canUndo());
-		this.redoEl.setState(!data.canRedo());
+		// this.undoEl.setState(!data.canUndo());
+		// this.redoEl.setState(!data.canRedo());
 		this.mergeEl.setState(data.canUnmerge(), !data.selector.multiple());
 		this.autofilterEl.setState(!data.canAutofilter());
 		// this.mergeEl.disabled();
@@ -265,7 +270,7 @@ export default class Toolbar {
 		this.fillColorEl.setState(style.bgcolor);
 		this.alignEl.setState(style.align);
 		this.valignEl.setState(style.valign);
-		this.textwrapEl.setState(style.textwrap);
+		// this.textwrapEl.setState(style.textwrap);
 		// console.log('freeze is Active:', data.freezeIsActive());
 		this.freezeEl.setState(data.freezeIsActive());
 	}

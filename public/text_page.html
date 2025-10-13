@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>文本文档</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background-color: #f9fafb;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .top-bar h1 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .top-bar button {
+            background-color: white;
+            color: #007bff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .top-bar button:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        /* 文本域 */
+        textarea {
+            flex: 1;
+            width: 100%;
+            padding: 16px;
+            font-size: 15px;
+            border: none;
+            outline: none;
+            resize: none;
+            box-sizing: border-box;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <h1>文本文档</h1>
+    <button id="exportBtn">导出</button>
+</div>
+
+<textarea id="textArea" placeholder="在此输入内容..."></textarea>
+
+<script>
+	document.getElementById("exportBtn").addEventListener("click", () => {
+		const content = document.getElementById("textArea").value;
+		if (!content.trim()) {
+			alert("文本内容为空，无法导出。");
+			return;
+		}
+
+		const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "文本文档.txt"; // 导出的文件名
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+
+		URL.revokeObjectURL(url); // 释放资源
+	});
+
+	window.addEventListener("beforeunload", function (event) {
+		event.preventDefault();
+	});
+</script>
+</body>
+</html>

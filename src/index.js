@@ -8,15 +8,14 @@ import {locale} from './locale/locale';
 import './index.less';
 import getOrCreateSocket from "./forward/socket.js";
 
-
 class Spreadsheet {
 	//构造器
-	constructor(selectors, options = {}) {
+	constructor(selectors, name, options = {}) {
 		//连接服务器
-		getOrCreateSocket();
+		getOrCreateSocket(name)
 		//目标元素
 		let targetEl = selectors;
-		this.options = {showBottomBar: true, ...options};
+		this.options = {showBottomBar: false, ...options};
 		this.sheetIndex = 1;
 		this.datas = [];
 		if (typeof selectors === 'string') {
@@ -47,6 +46,7 @@ class Spreadsheet {
 		if (this.bottombar !== null) {
 			rootEl.child(this.bottombar.el);
 		}
+
 	}
 
 	// 添加一张表

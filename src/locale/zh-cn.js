@@ -23,6 +23,9 @@ export default {
     autofilter: '自动筛选',
     formula: '函数',
     translation: '翻译',
+    network: '网络状态',
+    export: '导出',
+    clearTable: '清空表格（谨慎使用）',
     more: '更多',
   },
   contextmenu: {

@@ -23,6 +23,9 @@ export default {
     autofilter: 'Filter',
     formula: 'Functions',
     translation: 'Translation',
+    network: 'Network status',
+    export: 'Export',
+    clearTable: 'Clear table (cautious)',
     more: 'More',
   },
   contextmenu: {

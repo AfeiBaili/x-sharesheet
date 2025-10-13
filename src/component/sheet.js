@@ -14,6 +14,9 @@ import SortFilter from './sort_filter';
 import {xtoast} from './message';
 import {cssPrefix} from '../config';
 import {formulas} from '../core/formula';
+import getOrCreateSocket from "../forward/socket.js";
+import {MessageDataProxy} from "../forward/message_data_proxy.js";
+import {EDIT} from "../forward/status_enum.js";
 
 /**
  * @desc throttle fn
@@ -344,7 +347,7 @@ function paste(what, evt) {
 	const {data} = this;
 	if (data.settings.mode === 'read') return;
 	if (data.clipboard.isClear()) {
-		const setSheet = () => sheetReset.call(this);
+		const resetSheet = () => sheetReset.call(this);
 		const eventTrigger = (rows) => {
 			this.trigger('pasted-clipboard', rows);
 		};
@@ -764,12 +767,12 @@ function sheetInitEvents() {
 			switch (keyCode) {
 				case 90:
 					// undo: ctrl + z
-					this.undo();
+					// this.undo();
 					evt.preventDefault();
 					break;
 				case 89:
 					// redo: ctrl + y
-					this.redo();
+					// this.redo();
 					evt.preventDefault();
 					break;
 				case 67:
@@ -900,43 +903,52 @@ function sheetInitEvents() {
 
 export default class Sheet {
 	constructor(targetEl, data) {
+		//事件管理
 		this.eventMap = createEventEmitter();
+		//设置
 		const {view, showToolbar, showContextmenu} = data.settings;
+		//表格节点
 		this.el = h('div', `${cssPrefix}-sheet`);
-		this.toolbar = new Toolbar(data, view.width, !showToolbar);
+		//顶部工具栏位
+		this.toolbar = new Toolbar(data, this, view.width, !showToolbar);
+		//打印机（已弃用）
 		this.print = new Print(data);
 		targetEl.children(this.toolbar.el, this.el, this.print.el);
 		this.data = data;
-		// table
+		// 表格画布
 		this.tableEl = h('canvas', `${cssPrefix}-table`);
-		// resizer
+		// 调整器
 		this.rowResizer = new Resizer(false, data.rows.height);
 		this.colResizer = new Resizer(true, data.cols.minWidth);
-		// scrollbar
+		// 滚动条
 		this.verticalScrollbar = new Scrollbar(true);
 		this.horizontalScrollbar = new Scrollbar(false);
-		// editor
+		// 编辑器
 		this.editor = new Editor(
 			formulas,
 			() => this.getTableOffset(),
 			data.rows.height,
 		);
-		// data validation
+		// 限制输入内容 限制器
 		this.modalValidation = new ModalValidation();
-		// contextMenu
+		// 上下文菜单
 		this.contextMenu = new ContextMenu(() => this.getRect(), !showContextmenu);
-		// selector
+		// 选择器
 		this.selector = new Selector(data);
+
+		//交互层
 		this.overlayerCEl = h('div', `${cssPrefix}-overlayer-content`)
 			.children(
 				this.editor.el,
 				this.selector.el,
 			);
+
+		// 覆盖层
 		this.overlayerEl = h('div', `${cssPrefix}-overlayer`)
 			.child(this.overlayerCEl);
 		// sortFilter
 		this.sortFilter = new SortFilter();
-		// root element
+		// 绑定元素
 		this.el.children(
 			this.tableEl,
 			this.overlayerEl.el,
@@ -948,19 +960,78 @@ export default class Sheet {
 			this.modalValidation.el,
 			this.sortFilter.el,
 		);
-		// table
+		// 表格初始化
 		this.table = new Table(this.tableEl.el, data);
+		// 初始化事件
 		sheetInitEvents.call(this);
+		// 初始化状态
 		sheetReset.call(this);
-		// init selector [0, 0]
+		// 初始化选择器
 		selectorSet.call(this, false, 0, 0);
+
+		this.messageData = new MessageDataProxy(this)
+
+
+		getOrCreateSocket().setNetworkEl(this.toolbar.networkEl)
+		// added code 插入
+		getOrCreateSocket().addOnMessage((data) => {
+			if (data.code !== 0) return
+			const {value, ri, ci} = data.data
+			this.data.setCellText(ri, ci, value)
+			this.table.render()
+		})
+		this.on("cell-edited", (value, ri, ci) => {
+			// getOrCreateSocket().sendMessage(EDIT.setData({value, ri, ci}))
+			handleEdited(ri, ci, value)
+		})
+
+		const cellMap = new Map();
+
+		function handleEdited(ri, ci, value) {
+			const key = `${ri}-${ci}`;
+
+			if (cellMap.has(key)) {
+				clearTimeout(cellMap.get(key));
+			}
+
+			cellMap.set(key, setTimeout(() => {
+				getOrCreateSocket().sendMessage(EDIT.setData({value, ri, ci}))
+				cellMap.delete(key);
+			}, 300));
+		}
+
+		// added code 删除
+		getOrCreateSocket().addOnMessage((data) => {
+			if (data.code !== 1) return;
+			const range = data.data.range;
+			const what = data.data.what;
+
+			this.data.each((i, j) => {
+				this.data.rows.deleteCell(i, j, what)
+			}, range)
+
+			this.table.render()
+		})
+
+		// added code 删除后发送消息，然后让网页刷新
+		getOrCreateSocket().addOnMessage((data) => {
+			if (data.code === 10) {
+				location.reload()
+			}
+		})
+
+		// this.on("change", (...args) => {
+		// 	console.log(...args);
+		// })
 	}
 
+	//绑定事件
 	on(eventName, func) {
 		this.eventMap.on(eventName, func);
 		return this;
 	}
 
+	//触发事件
 	trigger(eventName, ...args) {
 		const {eventMap} = this;
 		eventMap.fire(eventName, args);
@@ -1023,5 +1094,4 @@ export default class Sheet {
 			top: rows.height,
 		};
 	}
-
 }
