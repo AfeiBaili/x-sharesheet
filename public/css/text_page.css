@@ -4,6 +4,12 @@
     --bg: #f7f9fc
 }
 
+#exportLineNumber{
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    outline: #0d6efd;
+}
+
 * {
     box-sizing: border-box
 }

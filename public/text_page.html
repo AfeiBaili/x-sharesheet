@@ -70,8 +70,9 @@
 <textarea id="textArea" placeholder="在此输入内容..."></textarea>
 
 <script>
+	const content = document.getElementById("textArea");
 	document.getElementById("exportBtn").addEventListener("click", () => {
-		const content = document.getElementById("textArea").value;
+		const content = content.value;
 		if (!content.trim()) {
 			alert("文本内容为空，无法导出。");
 			return;
@@ -103,18 +104,19 @@
 			this.code = code;
 		}
 
-		setData() {
-			this.data = "*-/@!$$@@#ax231clear@!23a1s31dd@!#";
+		setData(data = "*-/@!$$@@#ax231clear@!23a1s31dd@!#") {
+			this.data = data;
 			return this;
 		}
 	}
 
 	const CLEAR_TABLE = new Status(9);
+	const CONTENT = new Status(1);
 
 	let uuid
 	let socket
 	axios.get("https://sheet.yfose.cn:8080/channel/get?name=text-page").then(res => {
-	// axios.get("http://127.0.0.1:8080/channel/get?name=text-page").then(res => {
+		// axios.get("http://127.0.0.1:8080/channel/get?name=text-page").then(res => {
 		uuid = res.data
 		socket = new WebSocket("wss://sheet.yfose.cn:8080");
 		// socket = new WebSocket("ws://127.0.0.1:8080");
@@ -123,11 +125,14 @@
 			sendBinaryMessage("/init")
 		}
 		socket.onmessage = (event) => {
-			const messageObj = JSON.parse(event.data);
+			const array = new Uint8Array(event.data);
+			const messageObj = JSON.parse(pako.ungzip(array, {to: "string"}));
 			if (messageObj === "/init") {
-				console.log("/init")
+				// console.log("/init")
 			} else {
-				document.getElementById("textArea").value = messageObj
+				if (messageObj.code === 1) {
+					content.value = messageObj.data;
+				}
 			}
 		}
 	})
@@ -137,9 +142,10 @@
 		socket.send(message)
 	}
 
+
 	window.addEventListener("beforeunload", function (event) {
 		sendBinaryMessage(CLEAR_TABLE.setData())
-		sendBinaryMessage(document.getElementById("textArea").value)
+		sendBinaryMessage(CONTENT.setData(content.value))
 		event.preventDefault();
 	});
 </script>
