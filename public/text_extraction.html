@@ -132,12 +132,13 @@
 	function readLine(text) {
 		if (text.indexOf('\n') === -1) return text;
 		const line = text.substring(0, text.indexOf('\n'));
-		text = text.substring(text.indexOf('\n') + 1, text.length - 1);
+		text = text.substring(text.indexOf('\n') + 1, text.length);
 		return {text, line};
 	}
 
 	function applyRule(rule) {
 		let text = source.value || '';
+		let textBackup = text
 		let res = [];
 		if (rule.type === 'regex') {
 			try {
@@ -181,6 +182,7 @@
 				if (idx >= text.length) break;
 			}
 		}
+		if (res.length === 0) source.value = textBackup;
 		appendOutput(`--- ${rule.name} (${rule.type}) ---\n` + (res.length ? res.join('\n') : '[无匹配结果]') + '\n');
 	}
 
