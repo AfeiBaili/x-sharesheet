@@ -2,8 +2,10 @@ import axios from "axios";
 import Message from "./message.js";
 
 
-const ip = "sheet.yfose.cn:8080"
-// const ip = "127.0.0.1:8080"
+const ip = "https://sheet.yfose.cn:8080"
+// const ip = "http://127.0.0.1:8080"
+const socketIp = "wss://sheet.yfose.cn:8080"
+// const socketIp = "ws://127.0.0.1:8080"
 
 let socket = null;
 let initMessage = null;
@@ -32,8 +34,7 @@ let networkEl = null
 class Socket {
 	constructor(username) {
 		const name = `spreadsheet-${username}`;
-		const url = `https://${ip}/channel/get?name=${name}`
-		const webSocketUrl = `wss://${ip}/`;
+		const url = `${ip}/channel/get?name=${name}`
 		const self = this
 
 		axios.get(url).then(function (response) {
@@ -41,7 +42,7 @@ class Socket {
 			self.name = name
 			//这两行执行顺序重要
 			initMessage = new Message(self.uuid, self.name, "/init")
-			self.socket = new WebSocketImpl(webSocketUrl);
+			self.socket = new WebSocketImpl(socketIp);
 		}).catch(function (error) {
 			//todo 编写错误逻辑
 			console.error("连接服务器错误：" + error);

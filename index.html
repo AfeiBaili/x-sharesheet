@@ -319,7 +319,7 @@
 
 		try {
 			const s = new Account(name, pwd);
-			const res = await axios.post(`https://${ip}/account/login/user`, s);
+			const res = await axios.post(`${ip}/account/login/user`, s);
 			const data = res.data;
 			if (data === "账户不存在" || data === "密码不正确") return showError(userError, data);
 
@@ -338,7 +338,7 @@
 
 		try {
 			const s = new Account(name, pwd).toObj();
-			const res = await axios.post(`https://${ip}/account/login/admin`, s);
+			const res = await axios.post(`${ip}/account/login/admin`, s);
 			const data = res.data;
 			if (data === "管理员不存在" || data === "密码不正确") return showError(adminError, data);
 
@@ -369,10 +369,11 @@
 		const username = document.getElementById("username").value.trim();
 		const password = document.getElementById("password").value.trim();
 		if (!username || !password) return showMessage("请输入用户名和密码");
+		if (username.length > 32 || password > 32) return showMessage("用户名和密码各不应该超过32字符");
 
 		try {
 			const s = new Account(username, password);
-			const response = await axios.post(`https://${ip}/account/create/user`, s);
+			const response = await axios.post(`${ip}/account/create/user`, s);
 			const data = response.data;
 			if (data === "账户已存在") return showMessage(data);
 
@@ -443,11 +444,11 @@
 				try {
 					const admin = JSON.parse(localStorage.getItem("account"));
 					const account = new Account(u.username, "");
-					const res = await axios.post(`https://${ip}/account/delete/user`, account);
+					const res = await axios.post(`${ip}/account/delete/user`, account);
 					const channelName = "spreadsheet-" + u.username;
-					const uuidData = await axios.get(`https://${ip}/channel/get?name=` + channelName);
+					const uuidData = await axios.get(`${ip}/channel/get?name=` + channelName);
 
-					const socket = new WebSocket(`wss://${ip}/`);
+					const socket = new WebSocket(`${ip}/`);
 					socket.onopen = function () {
 						socket.send(JSON.stringify(new Message(uuidData.data, channelName, DELETE_USER)));
 						socket.send(JSON.stringify(new Message(uuidData.data, channelName, CLEAR_TABLE.setData("*-/@!$$@@#ax231clear@!23a1s31dd@!#"))));
@@ -480,7 +481,7 @@
 	async function loadUsers() {
 		try {
 			const s = JSON.parse(localStorage.getItem("account"));
-			const res = await axios.post(`https://${ip}/account/get/user/all`, {
+			const res = await axios.post(`${ip}/account/get/user/all`, {
 				name: s.name, token: s.token
 			});
 			const data = res.data;
@@ -500,14 +501,14 @@
 		const account = JSON.parse(item);
 
 		if (!account.token) {
-			axios.post(`https://${ip}/account/login/user`, account).then(res => {
+			axios.post(`${ip}/account/login/user`, account).then(res => {
 				if (res.data !== "账户不存在" && res.data !== "密码不正确") {
 					showPage("sheetPage");
 					window.spreadsheet = new Spreadsheet("#sheet", account.name);
 				}
 			})
 		} else {
-			axios.post(`https://${ip}/account/login/user/auto`, account).then((res) => {
+			axios.post(`${ip}/account/login/user/auto`, account).then((res) => {
 				showPage("sheetPage");
 				window.spreadsheet = new Spreadsheet("#sheet", account.name);
 			})

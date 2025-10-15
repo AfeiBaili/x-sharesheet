@@ -21,28 +21,33 @@
             <button id="btnUseSelection" class="small">提取选中文本</button>
             <input id="fileInput" type="file" accept="text/*" style="display:none"/>
             <button id="btnLoadFile" class="small">从文件载入</button>
-            <button id="sourceDeduplication" class="small">文本去重</button>
+            <button id="btnReadLine" class="small">只取一行：关</button>
             <button id="sourceCurrentLineNumber" class="small ghost">当前行数：0</button>
             <button id="btnClear" class="small">清空</button>
         </div>
 
-        <hr style="border:none;border-top:1px solid #f1f6fb;margin:8px 0"/>
-
         <label style="margin-top:6px">提取结果</label>
-        <div id="output" class="output hidden" contenteditable="true"></div>
+        <div id="output" class="output" contenteditable="true"></div>
 
         <div class="controls">
             <button id="btnCopyOutput" class="small">复制结果</button>
-            <button id="btnShowAndHiddenOutput" class="small">显示结果</button>
             <button id="btnExport" class="small">导出为 TXT</button>
-            <button id="outputDeduplication" class="small">结果去重</button>
             <button id="outputCurrentLineNumber" class="small ghost">当前行数：0</button>
-            <input id="exportLineNumber" type="number" placeholder="导出行（默认导出全部）">
             <button id="btnClearOutput" class="small">清空结果</button>
+            <input id="exportLineNumber" type="number" placeholder="导出行（默认导出全部）">
         </div>
     </main>
 
     <aside class="panel sidebar">
+        <div>
+            <label>示例操作</label>
+            <div class="row" style="margin-top:6px">
+                <button id="btnExtractEmails" class="small ghost">提取邮箱</button>
+                <button id="btnExtractEmailsAndPassword" class="small ghost">提取邮箱和密码</button>
+                <button id="btnExtractUrls" class="small ghost">提取URL</button>
+            </div>
+        </div>
+
         <div>
             <label>分列功能</label>
             <div style="display:grid;gap:6px;margin-top:6px">
@@ -51,6 +56,32 @@
                 <button id="btnSplitColumns" class="small">分列显示</button>
             </div>
         </div>
+
+        <div>
+            <label>新增提取规则</label>
+            <div style="display:grid;gap:6px;margin-top:6px">
+                <input id="ruleName" type="text" placeholder="规则名称，例如：提取邮箱"/>
+                <select id="ruleType">
+                    <option value="between">起始/结束 (Start-End)</option>
+                    <option value="regex">正则 (Regex)</option>
+                </select>
+                <input id="rulePattern" type="text" placeholder="模式/正则/起始 (正则请去掉斜杠)"/>
+                <input id="ruleFlags" type="text" placeholder="正则标志 (例如：gi) - 可留空"/>
+                <div style="display:flex;gap:8px">
+                    <button id="btnAddRule" class="small">添加规则并生成按钮</button>
+                    <button id="btnSaveRules" class="small ghost">保存规则到本地</button>
+                </div>
+            </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #f1f6fb;margin:8px 0"/>
+
+        <div>
+            <label>规则按钮</label>
+            <div id="ruleList" class="rule-list" aria-live="polite"></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #f1f6fb;margin:8px 0"/>
     </aside>
 </div>
 
@@ -64,47 +95,145 @@
 	// 简单规则管理（保存在 localStorage）
 	const source = document.getElementById('source');
 	const output = document.getElementById('output');
+	const ruleListEl = document.getElementById('ruleList');
 	const fileInput = document.getElementById('fileInput');
+	const btnReadLine = document.getElementById("btnReadLine");
 	const sourceCurrentLineNumber = document.getElementById("sourceCurrentLineNumber");
 	const outputCurrentLineNumber = document.getElementById("outputCurrentLineNumber");
 	const btnExportLineNumber = document.getElementById("exportLineNumber");
-	const btnShowAndHiddenOutput = document.getElementById("btnShowAndHiddenOutput");
-	const btnOutputDeduplication = document.getElementById("outputDeduplication");
-	const btnSourceDeduplication = document.getElementById("sourceDeduplication");
 
-	function deduplication(text) {
-		const set = new Set();
-		text.split(/\n+/).forEach(line => {
-			set.add(line);
-		})
-		let string = ""
-		set.forEach(line => {
-			string = string + line + "\n";
-		})
-		return string.trim();
+	let isReadLine = false;
+
+	let rules = JSON.parse(localStorage.getItem('textExtractRules') || '[]');
+
+	function saveRules() {
+		localStorage.setItem('textExtractRules', JSON.stringify(rules));
+		renderRules();
 	}
 
-	btnOutputDeduplication.addEventListener("click", () => {
-		output.textContent = deduplication(output.innerText)
-        updateLineNumberAll()
-	})
-	btnSourceDeduplication.addEventListener("click", () => {
-		source.value = deduplication(source.value)
-        updateLineNumberAll()
-	})
+	function renderRules() {
+		ruleListEl.innerHTML = '';
+		rules.forEach((r, idx) => {
+			const div = document.createElement('div');
+			div.className = 'rule-item';
+			div.innerHTML = `<div style="flex:1"><strong>${escapeHtml(r.name)}</strong><div style="font-size:12px;color:${'#6c757d'}">${escapeHtml(r.type)} — ${escapeHtml(r.pattern)}</div></div>`;
+			const btn = document.createElement('button');
+			btn.textContent = '运行';
+			btn.className = 'small';
+			btn.addEventListener('click', () => applyRule(r));
+			const del = document.createElement('button');
+			del.textContent = '删';
+			del.className = 'small ghost';
+			del.addEventListener('click', () => {
+				rules.splice(idx, 1);
+				saveRules();
+			});
+			div.appendChild(btn);
+			div.appendChild(del);
+			ruleListEl.appendChild(div);
+		})
+	}
 
-	let isHiddenOutput = true
-	btnShowAndHiddenOutput.addEventListener("click", () => {
-		isHiddenOutput = !isHiddenOutput;
-		btnShowAndHiddenOutput.value = isHiddenOutput ? "显示结果" : "隐藏结果";
-		if (isHiddenOutput) output.classList.add("hidden");
-		else output.classList.remove("hidden");
-	})
+	function escapeHtml(s) {
+		return String(s).replace(/[&<>\"']/g, c => ({
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;',
+			"'": "&#39;"
+		})[c]);
+	}
+
+	function readLine(text) {
+		if (text.indexOf('\n') === -1) return text;
+		const line = text.substring(0, text.indexOf('\n'));
+		text = text.substring(text.indexOf('\n') + 1, text.length);
+		return {text, line};
+	}
+
+	function applyRule(rule) {
+		let text = source.value || '';
+		let textBackup = text
+		let res = [];
+		if (rule.type === 'regex') {
+			try {
+				const flags = rule.flags || 'g';
+				const re = new RegExp(rule.pattern, flags.includes('g') ? flags : flags + 'g');
+				let m;
+				if (isReadLine) {
+					const lineObj = readLine(text);
+					if (typeof lineObj === "object") {
+						source.value = lineObj.text;
+						text = lineObj.line
+					}
+				}
+				while ((m = re.exec(text)) !== null) {
+					if (m.length === 3) {
+						res.push("邮箱：" + m[1] + "\t\t密码：" + m[2]);
+					} else res.push(m[0]);
+					if (m.index === re.lastIndex) re.lastIndex++;
+				}
+			} catch (e) {
+				alert('正则错误：' + e.message);
+				return
+			}
+		} else if (rule.type === 'between') {
+			const s = rule.patternStart || '';
+			const e = rule.patternEnd || '';
+			if (!s && !e) {
+				alert('请填写起始或结束字符串');
+				return
+			}
+			let idx = 0;
+			while (true) {
+				const si = s ? text.indexOf(s, idx) : idx;
+				if (si === -1) break;
+				const from = s ? si + s.length : si;
+				const ei = e ? text.indexOf(e, from) : -1;
+				if (e && ei === -1) break;
+				const to = e ? ei : text.length;
+				res.push(text.slice(from, to));
+				idx = e ? ei + e.length : text.length;
+				if (idx >= text.length) break;
+			}
+		}
+		if (res.length === 0) source.value = textBackup;
+		appendOutput(`--- ${rule.name} (${rule.type}) ---\n` + (res.length ? res.join('\n') : '[无匹配结果]') + '\n');
+		updateLineNumber(sourceCurrentLineNumber)
+		updateLineNumber(outputCurrentLineNumber)
+	}
 
 	function appendOutput(t) {
-		output.textContent = ((output.textContent ? output.textContent + '\n' : '') + t).trim();
+		output.textContent = (output.textContent ? output.textContent + '\n' : '') + t;
 		output.scrollTop = output.scrollHeight
 	}
+
+	// 添加规则
+	document.getElementById('btnAddRule').addEventListener('click', () => {
+		const name = document.getElementById('ruleName').value.trim() || '未命名规则';
+		const type = document.getElementById('ruleType').value;
+		const patternRaw = document.getElementById('rulePattern').value.trim();
+		const flags = document.getElementById('ruleFlags').value.trim();
+		const rule = {name, type, pattern: patternRaw, flags};
+		// 额外保存起止
+		if (type === 'between') {
+			const parts = patternRaw.split('||');
+			rule.patternStart = parts[0] || '';
+			rule.patternEnd = parts[1] || '';
+		}
+		rules.unshift(rule);
+		saveRules();
+		document.getElementById('ruleName').value = '';
+		document.getElementById('rulePattern').value = '';
+		document.getElementById('ruleFlags').value = '';
+	});
+
+	document.getElementById('btnSaveRules').addEventListener('click', saveRules);
+
+	btnReadLine.addEventListener('click', () => {
+		isReadLine = !isReadLine;
+		btnReadLine.textContent = `只取一行：${isReadLine ? "开" : "关"}`;
+	})
 
 	// 复制/导出功能
 	document.getElementById('btnCopyOutput').addEventListener('click', () => {
@@ -171,7 +300,6 @@
 		const s = ta.value.substring(ta.selectionStart, ta.selectionEnd);
 		if (!s) return alert('请先选中要提取的部分（在输入框内选中）');
 		appendOutput('--- 选中内容 ---\n' + s + '\n');
-		updateLineNumberAll()
 	});
 
 	// 从文件载入
@@ -181,11 +309,46 @@
 		if (!f) return;
 		const reader = new FileReader();
 		reader.onload = () => {
-			source.value = source.value + reader.result;
-			updateLineNumberAll()
+			source.value = reader.result;
 		};
 		reader.readAsText(f);
-		e.target.value = ""
+	});
+
+	// 示例按钮
+	document.getElementById('btnExtractEmails').addEventListener('click', () => {
+		const demo = {
+			name: '邮箱',
+			type: 'regex',
+			pattern: '[A-Za-z0-9_.+-]+@[A-Za-z0-9-]+\\.[A-Za-z0-9]+',
+			flags: 'gi'
+		};
+		applyRule(demo);
+	});
+	document.getElementById('btnExtractEmailsAndPassword').addEventListener('click', () => {
+		const demo = {
+			name: '邮箱和密码',
+			type: 'regex',
+			pattern: '([A-Za-z0-9_.+-]+@[A-Za-z0-9-]+\\.[A-Za-z0-9]+)\\W+(.+)',
+			flags: 'gi'
+		};
+		applyRule(demo);
+	});
+	document.getElementById('btnExtractUrls').addEventListener('click', () => {
+		const demo = {name: 'URL', type: 'regex', pattern: 'https?:\\/\\/[\\w\\-\\./?=&%#:]+', flags: 'gi'};
+		applyRule(demo);
+	});
+
+	// 页面初始化
+	renderRules();
+
+	// 如果规则中有 between 类型，解析 patternStart/patternEnd
+	rules = rules.map(r => {
+		if (r.type === 'between' && !('patternStart' in r)) {
+			const parts = (r.pattern || '').split('||');
+			r.patternStart = parts[0] || '';
+			r.patternEnd = parts[1] || '';
+		}
+		return r;
 	});
 
 	source.oninput = e => {
@@ -193,11 +356,6 @@
 	}
 	output.oninput = e => {
 		updateLineNumber(outputCurrentLineNumber);
-	}
-
-	function updateLineNumberAll() {
-		updateLineNumber(sourceCurrentLineNumber)
-		updateLineNumber(outputCurrentLineNumber)
 	}
 
 	function updateLineNumber(element) {
@@ -296,10 +454,10 @@
 
 	let uuid
 	let socket
-	axios.get("https://sheet.yfose.cn:8080/channel/get?name=text-extraction").then(res => {
-	// axios.get("http://127.0.0.1:8080/channel/get?name=text-extraction").then(res => {
+	// axios.get("https://sheet.yfose.cn:8080/channel/get?name=text-extraction").then(res => {
+		axios.get("http://127.0.0.1:8080/channel/get?name=text-extraction").then(res => {
 		uuid = res.data
-		socket = new WebSocket("wss://sheet.yfose.cn:8080");
+		// socket = new WebSocket("wss://sheet.yfose.cn:8080");
 		// socket = new WebSocket("ws://127.0.0.1:8080");
 		socket.binaryType = "arraybuffer"
 		socket.onopen = () => {
@@ -331,7 +489,7 @@
 	window.addEventListener("beforeunload", function (event) {
 		sendBinaryMessage(CLEAR_HISTORY.setData())
 		sendBinaryMessage(SOURCE_TEXT.setData(source.value))
-		sendBinaryMessage(OUTPUT_TEXT.setData(output.innerText))
+		sendBinaryMessage(OUTPUT_TEXT.setData(output.textContent))
 		event.preventDefault();
 	});
 </script>

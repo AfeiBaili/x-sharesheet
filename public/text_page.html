@@ -116,7 +116,7 @@
 	let uuid
 	let socket
 	axios.get("https://sheet.yfose.cn:8080/channel/get?name=text-page").then(res => {
-		// axios.get("http://127.0.0.1:8080/channel/get?name=text-page").then(res => {
+	// axios.get("http://127.0.0.1:8080/channel/get?name=text-page").then(res => {
 		uuid = res.data
 		socket = new WebSocket("wss://sheet.yfose.cn:8080");
 		// socket = new WebSocket("ws://127.0.0.1:8080");
@@ -144,8 +144,10 @@
 
 
 	window.addEventListener("beforeunload", function (event) {
-		sendBinaryMessage(CLEAR_TABLE.setData())
-		sendBinaryMessage(CONTENT.setData(content.value))
+		if (content.value !== "") {
+			sendBinaryMessage(CLEAR_TABLE.setData())
+			sendBinaryMessage(CONTENT.setData(content.value))
+		}
 		event.preventDefault();
 	});
 </script>
