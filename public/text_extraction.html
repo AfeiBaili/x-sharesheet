@@ -86,11 +86,11 @@
 
 	btnOutputDeduplication.addEventListener("click", () => {
 		output.textContent = deduplication(output.innerText)
-        updateLineNumberAll()
+		updateLineNumberAll()
 	})
 	btnSourceDeduplication.addEventListener("click", () => {
 		source.value = deduplication(source.value)
-        updateLineNumberAll()
+		updateLineNumberAll()
 	})
 
 	let isHiddenOutput = true
@@ -297,7 +297,7 @@
 	let uuid
 	let socket
 	axios.get("https://sheet.yfose.cn:8080/channel/get?name=text-extraction").then(res => {
-	// axios.get("http://127.0.0.1:8080/channel/get?name=text-extraction").then(res => {
+		// axios.get("http://127.0.0.1:8080/channel/get?name=text-extraction").then(res => {
 		uuid = res.data
 		socket = new WebSocket("wss://sheet.yfose.cn:8080");
 		// socket = new WebSocket("ws://127.0.0.1:8080");
@@ -329,9 +329,11 @@
 	}
 
 	window.addEventListener("beforeunload", function (event) {
-		sendBinaryMessage(CLEAR_HISTORY.setData())
-		sendBinaryMessage(SOURCE_TEXT.setData(source.value))
-		sendBinaryMessage(OUTPUT_TEXT.setData(output.innerText))
+		if (source.value !== "" || output.innerText !== "") {
+			sendBinaryMessage(CLEAR_HISTORY.setData())
+			sendBinaryMessage(SOURCE_TEXT.setData(source.value))
+			sendBinaryMessage(OUTPUT_TEXT.setData(output.innerText))
+		}
 		event.preventDefault();
 	});
 </script>
