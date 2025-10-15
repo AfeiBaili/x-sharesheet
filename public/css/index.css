@@ -1,0 +1,227 @@
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background-color: #f9fafb;
+}
+
+.url-item-container {
+    padding: 30px;
+    max-width: 800px;
+    margin: 40px auto;
+    background-color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+
+    a,
+    a:hover,
+    a:visited {
+        text-decoration: none;
+        color: #333;
+    }
+
+    .url-item {
+        margin: 10px 10px 0 10px;
+        width: 60px;
+        height: 60px;
+        background-color: #007bff;
+        color: white;
+        user-select: none;
+        font-size: 40px;
+        text-align: center;
+        border-radius: 8px;
+    }
+
+    .url-item-text {
+        font-size: 13px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 60px;
+        margin: auto;
+    }
+}
+
+/* 页面隐藏通用 */
+.hidden {
+    display: none !important;
+}
+
+.sheet-user {
+    position: absolute;
+}
+
+/* 登录卡片样式 */
+.login-card {
+    width: 300px;
+    background: #ffffff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    text-align: center;
+    margin: 120px auto;
+}
+
+.login-card h2 {
+    margin-bottom: 20px;
+    font-size: 20px;
+    color: #333;
+}
+
+.login-card input {
+    width: 90%;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.login-card button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background-color: #007bff;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.login-card button:hover {
+    background-color: #0056b3;
+}
+
+.login-card .toggle {
+    margin-top: 12px;
+    color: #007bff;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.error-message {
+    color: red;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+}
+
+/* 管理员页面样式 */
+.top-bar {
+    background-color: #007bff;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.top-bar .input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+input {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    outline: none;
+    background-color: #fff;
+    color: #333;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #fff;
+    color: #007bff;
+    border: 1px solid #007bff;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #007bff;
+    color: #fff;
+}
+
+.user-list {
+    padding: 30px;
+    max-width: 800px;
+    margin: 40px auto;
+    background-color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
+.message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    display: none;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+/* 表格样式 */
+#userTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#userTable th, #userTable td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+#userTable th {
+    text-align: left;
+    color: #333;
+}
+
+#userTable td:last-child {
+    text-align: right;
+}
+
+#userTable button {
+    margin-left: 6px;
+}
+
+/* 电子表格 */
+#sheet {
+    width: 100%;
+    height: 100vh;
+}
+
+#exitViewBtn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #ff4d4f;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 9999;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+#exitViewBtn:hover {
+    background-color: #d9363e;
+}

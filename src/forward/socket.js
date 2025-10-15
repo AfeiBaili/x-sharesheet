@@ -27,7 +27,7 @@ function setSocket(name) {
 	return socket;
 }
 
-export {setSocket, ip}
+export {setSocket, ip, socketIp}
 
 let networkEl = null
 

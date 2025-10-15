@@ -24,6 +24,7 @@ const RESET_TABLE = new Status(11);
 const PASTE_FROM_CLIPBOARD = new Status(12);
 
 export {
+	Status,
 	EDIT,
 	DELETE,
 	MERGE,

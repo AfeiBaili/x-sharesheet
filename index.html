@@ -4,199 +4,9 @@
     <meta charset="UTF-8">
     <title>共享电子表格系统</title>
     <meta name="viewport" content="width=device-width">
-    <style>
-        body {
-            margin: 0;
-            font-family: "Segoe UI", Arial, sans-serif;
-            background-color: #f9fafb;
-        }
-
-        /* 页面隐藏通用 */
-        .hidden {
-            display: none !important;
-        }
-
-        .sheet-user {
-            position: absolute;
-        }
-
-        /* 登录卡片样式 */
-        .login-card {
-            width: 300px;
-            background: #ffffff;
-            border: 1px solid #eee;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            padding: 24px;
-            text-align: center;
-            margin: 120px auto;
-        }
-
-        .login-card h2 {
-            margin-bottom: 20px;
-            font-size: 20px;
-            color: #333;
-        }
-
-        .login-card input {
-            width: 90%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .login-card button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            background-color: #007bff;
-            border: none;
-            border-radius: 6px;
-            color: #fff;
-            font-size: 15px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .login-card button:hover {
-            background-color: #0056b3;
-        }
-
-        .login-card .toggle {
-            margin-top: 12px;
-            color: #007bff;
-            font-size: 13px;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-        .error-message {
-            color: red;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        /* 管理员页面样式 */
-        .top-bar {
-            background-color: #007bff;
-            color: white;
-            padding: 15px 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .top-bar .input-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        input {
-            padding: 6px 10px;
-            border: 1px solid #ccc;
-            outline: none;
-            background-color: #fff;
-            color: #333;
-            border-radius: 4px;
-        }
-
-        button {
-            background-color: #fff;
-            color: #007bff;
-            border: 1px solid #007bff;
-            padding: 6px 12px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        button:hover {
-            background-color: #007bff;
-            color: #fff;
-        }
-
-        .user-list {
-            padding: 30px;
-            max-width: 800px;
-            margin: 40px auto;
-            background-color: white;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-            border-radius: 8px;
-        }
-
-        .message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            display: none;
-        }
-
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        /* 表格样式 */
-        #userTable {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        #userTable th, #userTable td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        #userTable th {
-            text-align: left;
-            color: #333;
-        }
-
-        #userTable td:last-child {
-            text-align: right;
-        }
-
-        #userTable button {
-            margin-left: 6px;
-        }
-
-        /* 电子表格 */
-        #sheet {
-            width: 100%;
-            height: 100vh;
-        }
-
-        #exitViewBtn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #ff4d4f;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            z-index: 9999;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
-
-        #exitViewBtn:hover {
-            background-color: #d9363e;
-        }
-
-    </style>
+    <link rel="stylesheet" href="./public/css/index.css">
 </head>
 <body>
-
 <!-- 登录界面 -->
 <div id="loginPage">
     <!-- 用户登录 -->
@@ -235,6 +45,11 @@
     </div>
     <div id="message" class="message"></div>
 
+    <div id="urlItemContainer" class="url-item-container">
+        <div id="addUrlItem" class="url-item">+</div>
+        <div id="minusUrlItem" class="url-item">-</div>
+    </div>
+
     <!-- ✅ 用户列表表格 -->
     <div class="user-list">
         <h3>用户列表</h3>
@@ -255,13 +70,12 @@
 <div id="sheetPage" class="hidden">
     <div id="sheet"></div>
 </div>
-
 <script type="module">
 	import axios from "axios";
 	import Spreadsheet from "/src/index.js";
-	import {CLEAR_TABLE, DELETE_USER} from "./src/forward/status_enum.js";
+	import {Status, CLEAR_TABLE, DELETE_USER} from "./src/forward/status_enum.js";
 	import Message from "./src/forward/message.js";
-	import {ip} from "./src/forward/socket.js";
+	import {ip, socketIp} from "./src/forward/socket.js";
 
 	window.spreadsheet = Spreadsheet;
 
@@ -448,7 +262,7 @@
 					const channelName = "spreadsheet-" + u.username;
 					const uuidData = await axios.get(`${ip}/channel/get?name=` + channelName);
 
-					const socket = new WebSocket(`${ip}/`);
+					const socket = new WebSocket(`${socketIp}/`);
 					socket.onopen = function () {
 						socket.send(JSON.stringify(new Message(uuidData.data, channelName, DELETE_USER)));
 						socket.send(JSON.stringify(new Message(uuidData.data, channelName, CLEAR_TABLE.setData("*-/@!$$@@#ax231clear@!23a1s31dd@!#"))));
@@ -514,6 +328,82 @@
 			})
 		}
 		localStorage.removeItem("auto-account");
+	}
+
+	/// URL列表模块 /////////////////////////////////
+	const btnAddUrlItem = document.getElementById("addUrlItem");
+	const urlItemContainer = document.getElementById("urlItemContainer");
+	const uuid = await axios.get(`${ip}/channel/get?name=url-list`);
+	const initMessage = new Message(uuid.data, "url-list", "/init");
+	const urlWebSocket = new WebSocket(`${socketIp}/`);
+	const btnMinusUrlItem = document.getElementById("minusUrlItem");
+
+	urlWebSocket.onopen = () => {
+		urlWebSocket.send(JSON.stringify(initMessage));
+	}
+
+	urlWebSocket.onmessage = e => {
+		const data = JSON.parse(e.data);
+		if (data.code === 1) {
+			data.data.forEach(item => {
+				addUrlItem(item.name, item.url)
+			})
+		}
+	}
+
+	function addUrlItem(name, url) {
+		const aBox = document.createElement("a");
+		const iconBox = document.createElement("div");
+		const nameBox = document.createElement("div");
+
+		iconBox.classList.add("url-item");
+		iconBox.innerText = name[0]
+		nameBox.classList.add("url-item-text");
+		nameBox.innerText = name
+		aBox.append(iconBox)
+		aBox.append(nameBox)
+		aBox.setAttribute('href', url);
+		aBox.target = "_blank";
+		urlItemContainer.prepend(aBox)
+	}
+
+	btnMinusUrlItem.addEventListener("click", () => {
+		if (urlItemContainer.children.length <= 2) return;
+		urlItemContainer.removeChild(urlItemContainer.children[0])
+		const urlList = []
+		urlItemContainer.childNodes.forEach((item) => {
+			if (item.tagName && item.tagName.toLowerCase() === "a") {
+				const name = item.childNodes[1].innerText
+				urlList.push({url: item.getAttribute("href"), name: name});
+			}
+		})
+		updateUrlList(urlList)
+	});
+
+	btnAddUrlItem.addEventListener("click", (e) => {
+		const name = prompt("请起一个链接名字");
+		const url = prompt("请输入链接地址");
+		if (!/https?:\/\//.test(url)) return alert("不是http（https）协议")
+
+		if (name === "" || url === "") return alert("名字和链接都不可为空")
+		addUrlItem(name, url);
+		const urlList = []
+		urlItemContainer.childNodes.forEach((item) => {
+			if (item.tagName && item.tagName.toLowerCase() === "a") {
+				const name = item.childNodes[1].innerText
+				urlList.push({url: item.getAttribute("href"), name: name});
+			}
+		})
+		updateUrlList(urlList)
+	})
+
+	const URL_LIST = new Status(1);
+
+	function updateUrlList(obj) {
+		const clearMessage = new Message(uuid.data, "url-list", CLEAR_TABLE.setData("*-/@!$$@@#ax231clear@!23a1s31dd@!#"));
+		const urlList = new Message(uuid.data, "url-list", URL_LIST.setData(obj));
+		urlWebSocket.send(JSON.stringify(clearMessage));
+		urlWebSocket.send(JSON.stringify(urlList));
 	}
 </script>
 </body>
