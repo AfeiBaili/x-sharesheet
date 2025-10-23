@@ -524,12 +524,12 @@ export default class DataProxy {
 		const parsedData = [];
 
 		// first we need to figure out how many rows we need to paste
-		const rows = clipboardContent.split('\n');
+		const rows = clipboardContent.split(/\n+/);
 
 		// for each row parse cell data
 		let i = 0;
 		rows.forEach((row) => {
-			parsedData[i] = row.split('\t');
+			parsedData[i] = row.split(/\t+/);
 			i += 1;
 		});
 		return parsedData;
@@ -538,8 +538,8 @@ export default class DataProxy {
 	pasteFromText(txt) {
 		let lines = [];
 
-		if (/\r\n/.test(txt)) lines = txt.split('\r\n').map(it => it.replace(/"/g, '').split('\t'));
-		else lines = txt.split('\n').map(it => it.replace(/"/g, '').split('\t'));
+		if (/\r\n/.test(txt)) lines = txt.split(/\r\n+/).map(it => it.replace(/"/g, '').split(/\t+/));
+		else lines = txt.split(/\n+/).map(it => it.replace(/"/g, '').split(/\t+/));
 
 		if (lines.length) {
 			const {rows, selector} = this;
