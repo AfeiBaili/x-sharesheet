@@ -10,10 +10,6 @@
     outline: #0d6efd;
 }
 
-.hidden {
-    display: none;
-}
-
 * {
     box-sizing: border-box
 }

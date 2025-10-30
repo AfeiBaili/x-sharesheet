@@ -266,6 +266,7 @@
 					socket.onopen = function () {
 						socket.send(JSON.stringify(new Message(uuidData.data, channelName, DELETE_USER)));
 						socket.send(JSON.stringify(new Message(uuidData.data, channelName, CLEAR_TABLE.setData("*-/@!$$@@#ax231clear@!23a1s31dd@!#"))));
+
 					};
 
 					const data = res.data;
@@ -400,7 +401,7 @@
 	const URL_LIST = new Status(1);
 
 	function updateUrlList(obj) {
-		const clearMessage = new Message(uuid.data, "url-list", CLEAR_TABLE.setData("*-/@!$$@@#ax231clear@!23a1s31dd@!#"));
+		const clearMessage = new Message(uuid.data, "url-list", CLEAR_TABLE.setData("*-/@!$$@@#ax231clear@!23a1s31d d@!#"));
 		const urlList = new Message(uuid.data, "url-list", URL_LIST.setData(obj));
 		urlWebSocket.send(JSON.stringify(clearMessage));
 		urlWebSocket.send(JSON.stringify(urlList));

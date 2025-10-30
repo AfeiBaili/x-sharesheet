@@ -251,7 +251,6 @@ export class MessageDataProxy {
 		const {sri, sci, eri, eci} = srcRange
 		srcRange = new CellRange(sri, sci, eri, eci)
 		dstRange = new CellRange(dstRange.sri, dstRange.sci, dstRange.eri, dstRange.eci)
-		console.log(dstRange)
 
 		if (!canPaste.call(this.getData(), srcRange, dstRange, error)) return false;
 		this.getData().changeData(() => {
@@ -274,5 +273,13 @@ export class MessageDataProxy {
 		dstRange = new CellRange(dstRange.sri, dstRange.sci, dstRange.eri, dstRange.eci)
 		cutPaste.call(this.getData(), srcRange, dstRange);
 		this.sheet.table.render()
+	}
+
+	undo() {
+
+	}
+
+	redo() {
+
 	}
 }

@@ -7,6 +7,7 @@ import {cssPrefix} from './config';
 import {locale} from './locale/locale';
 import './index.less';
 import getOrCreateSocket from "./forward/socket.js";
+import '../assets/sprite.svg'
 
 class Spreadsheet {
 	//构造器
@@ -20,6 +21,10 @@ class Spreadsheet {
 		this.datas = [];
 		if (typeof selectors === 'string') {
 			targetEl = document.querySelector(selectors);
+			const reconnectEl = document.createElement("div");
+			reconnectEl.id = "reconnect";
+			reconnectEl.innerText = "正在连接服务器..."
+			targetEl.parentElement.appendChild(reconnectEl);
 		}
 
 		//底部工具条
@@ -46,7 +51,6 @@ class Spreadsheet {
 		if (this.bottombar !== null) {
 			rootEl.child(this.bottombar.el);
 		}
-
 	}
 
 	// 添加一张表

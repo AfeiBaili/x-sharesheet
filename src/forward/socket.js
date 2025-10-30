@@ -69,19 +69,16 @@ class Socket {
 
 /** set函数集 */
 const messageSet = new Set();
+let reconnectTimeout = setTimeout(() => {
+})
 
 class WebSocketImpl {
 	constructor(url) {
 		const socket = new WebSocket(url);
-		socket.onopen = () => {
-			const networkDiv = networkEl.el.el.lastElementChild.lastElementChild;
-			networkDiv.classList.remove("network-error");
-			networkDiv.classList.add("network-connect");
-			this.socket.send(JSON.stringify(initMessage))
-		}
-		socket.onmessage = this.message
-		socket.onclose = this.close
-		socket.onerror = this.error
+		socket.onopen = this.initSocket.bind(this);
+		socket.onmessage = this.message.bind(this);
+		socket.onclose = this.close.bind(this);
+		socket.onerror = this.close.bind(this);
 		this.socket = socket;
 	}
 
@@ -94,16 +91,30 @@ class WebSocketImpl {
 		messageSet.forEach(it => it.call(this, messageObj))
 	}
 
-	close(event) {
+	initSocket() {
 		const networkDiv = networkEl.el.el.lastElementChild.lastElementChild;
-		networkDiv.classList.remove("network-connect");
-		networkDiv.classList.add("network-error");
+		networkDiv.classList.remove("network-error");
+		networkDiv.classList.add("network-connect");
+		this.socket.send(JSON.stringify(initMessage))
+		const reconnectEl = document.getElementById("reconnect");
+		reconnectEl.style.display = "none";
 	}
 
-	error(error) {
+	close(error) {
 		const networkDiv = networkEl.el.el.lastElementChild.lastElementChild;
 		networkDiv.classList.remove("network-connect");
 		networkDiv.classList.add("network-error");
-		console.error("连接ws服务器错误：" + error);
+		console.error("服务器断开连接：" + error);
+		const reconnectEl = document.getElementById("reconnect");
+		reconnectEl.style.display = "block";
+
+		clearTimeout(reconnectTimeout);
+		reconnectTimeout = setTimeout(() => {
+			this.socket = new WebSocket(socketIp)
+			this.socket.onopen = this.initSocket.bind(this);
+			this.socket.onmessage = this.message.bind(this);
+			this.socket.onclose = this.close.bind(this);
+			this.socket.onerror = this.close.bind(this);
+		}, 1000)
 	}
 }

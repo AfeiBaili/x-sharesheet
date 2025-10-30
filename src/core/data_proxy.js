@@ -91,7 +91,7 @@ const defaultSettings = {
 	showContextmenu: true,
 	showBottomBar: true,
 	row: {
-		len: 100,
+		len: 10000,
 		height: 25,
 	},
 	col: {
