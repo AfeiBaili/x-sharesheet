@@ -91,7 +91,7 @@ const defaultSettings = {
 	showContextmenu: true,
 	showBottomBar: true,
 	row: {
-		len: 10000,
+		len: 100,
 		height: 25,
 	},
 	col: {
@@ -449,7 +449,11 @@ export default class DataProxy {
 		}
 
 		// Adding \n and why not adding \r\n is to support online office and client MS office and WPS
-		copyText = copyText.map(row => row.join('\t')).join('\n');
+		copyText = copyText.map(row => {
+				row = row.map(item => item.trim())
+				return row.join('\t')
+			}
+		).join('\n');
 
 		// why used this
 		// cuz http protocol will be blocked request clipboard by browser
@@ -524,22 +528,24 @@ export default class DataProxy {
 		const parsedData = [];
 
 		// first we need to figure out how many rows we need to paste
-		const rows = clipboardContent.split(/\n+/);
+		const rows = clipboardContent.split(/\r+\n+/);
 
 		// for each row parse cell data
 		let i = 0;
 		rows.forEach((row) => {
-			parsedData[i] = row.split(/\t+/);
+			parsedData[i] = row.split(/\t+/).filter(it => it.trim() !== '');
 			i += 1;
 		});
+
+		console.log(parsedData)
 		return parsedData;
 	}
 
 	pasteFromText(txt) {
 		let lines = [];
 
-		if (/\r\n/.test(txt)) lines = txt.split(/\r\n+/).map(it => it.replace(/"/g, '').split(/\t+/));
-		else lines = txt.split(/\n+/).map(it => it.replace(/"/g, '').split(/\t+/));
+		if (/\r\n/.test(txt)) lines = txt.split('\r\n').map(it => it.replace(/"/g, '').split('\t'));
+		else lines = txt.split('\n').map(it => it.replace(/"/g, '').split('\t'));
 
 		if (lines.length) {
 			const {rows, selector} = this;
